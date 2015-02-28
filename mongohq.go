@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"html/template"
@@ -19,8 +20,15 @@ type Person struct {
 }
 
 func main() {
-	http.HandleFunc("/", root)
-	http.HandleFunc("/display", display)
+	r := mux.NewRouter()
+	r.HandleFunc("/", mainPage)
+	/*
+		r.HandleFunc("/tasks/{taskId}", viewTask)
+		r.HandleFunc("/task/new", createTask)
+		r.HandleFunc("/task/edit", editTask)
+	*/
+
+	http.Handle("/", r) // give everything to gorilla
 	err := http.ListenAndServe(":"+getPort(), nil)
 	if err != nil {
 		panic(err)
@@ -30,19 +38,13 @@ func main() {
 
 }
 
-// will return even if no match is made
-func root(w http.ResponseWriter, r *http.Request) {
+func mainPage(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("default.html", "header.html", "footer.html")
 	p := Data{Person{"Boris", ""}, time.Now()}
 	t.Execute(w, p)
 }
 
-/*
-func insertValues() {
-}
-*/
-
-func display(w http.ResponseWriter, r *http.Request) {
+func viewTask(w http.ResponseWriter, r *http.Request) {
 	displayTemplate, _ := template.ParseFiles("display.html", "header.html", "footer.html")
 	session, err := mgo.Dial("localhost")
 

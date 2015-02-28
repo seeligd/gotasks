@@ -1,0 +1,10 @@
+{{template "header" "search"}}
+
+<h2>Search</h2>
+<p>Please enter a name (example: Boris)</p>
+<form action="/search" method="post" accept-charset="utf-8" class="pure-form">
+    <input type="text" name="name" placeholder="name" />
+    <input type="submit" value=".. and query database!" class="pure-button pure-button-primary"/>
+</form>
+
+{{template "footer" .Time.Year}}
