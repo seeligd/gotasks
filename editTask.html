@@ -1,0 +1,11 @@
+{{template "header" .Title}}
+
+<h2>Create a new task</h2>
+
+<form action="/task" method="post" accept-charset="utf-8" class="pure-form">
+    <input type="text" name="name" placeholder="task" />
+    <input type="text" name="frequency" placeholder="frequency" />
+    <input type="submit" value="create" class="pure-button pure-button-primary"/>
+</form>
+
+{{template "footer" }}

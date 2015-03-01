@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"html/template"
+	"log"
 	"net/http"
 )
 
@@ -14,10 +15,6 @@ type E interface{}
 type Data struct {
 	E     // anonymous field; 'Data has an E'
 	Title string
-}
-type Person struct {
-	Name  string
-	Email string
 }
 
 type Task struct {
@@ -30,11 +27,8 @@ func main() {
 	r.HandleFunc("/tasks", tasksPage)
 	r.HandleFunc("/", mainPage)
 
-	/*
-		r.HandleFunc("/tasks/{taskId}", viewTask)
-		r.HandleFunc("/task/new", createTask)
-		r.HandleFunc("/task/edit", editTask)
-	*/
+	r.HandleFunc("/task/new", editTask)
+	r.HandleFunc("/task", createTask).Methods("POST")
 
 	http.Handle("/", r) // give everything to gorilla
 	err := http.ListenAndServe(":"+getPort(), nil)
@@ -51,47 +45,57 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, Data{nil, "Task App"})
 }
 
-// show all tasks
-func tasksPage(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("tasks.html", "header.html", "footer.html")
-	p := []Task{Task{"cut toenails", "monthly"}, Task{"eat carrots", "weekly"}}
-	fmt.Println("HI!", p)
-	t.Execute(w, Data{p, "title"})
-}
-
-func query(query *bson.M, result *E) {
+func getDb() (*mgo.Collection, *mgo.Session) {
 	session, err := mgo.Dial("localhost")
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
-	session.SetSafe(&mgo.Safe{})
-	collection := session.DB("test").C("People")
 
-	//result := Person{}
-	//err = collection.Find(bson.M{"name": r.FormValue("name")}).One(&result)
-	err = collection.Find(query).One(&result)
+	// Optional. Switch the session to a monotonic behavior.
+	session.SetMode(mgo.Monotonic, true)
+
+	c := session.DB("test").C("Tasks")
+
+	return c, session
+}
+
+// show all tasks
+func tasksPage(w http.ResponseWriter, r *http.Request) {
+	t, _ := template.ParseFiles("tasks.html", "header.html", "footer.html")
+	//p := []Task{Task{"cut toenails", "monthly"}, Task{"eat carrots", "weekly"}}
+
+	collection, session := getDb()
+	defer session.Close()
+
+	result := []Task{}
+	err := collection.Find(nil).All(&result)
+
+	for _, x := range result {
+		fmt.Println(x)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	//result := Task{}
+	//query(&bson.M{}, E(result))
+	t.Execute(w, Data{result, "title"})
 }
 
 // show specific task
 func viewTask(w http.ResponseWriter, r *http.Request) {
 	displayTemplate, _ := template.ParseFiles("display.html", "header.html", "footer.html")
 
-	session, err := mgo.Dial("localhost")
-	if err != nil {
-		panic(err)
-	}
+	collection, session := getDb()
 	defer session.Close()
-	session.SetSafe(&mgo.Safe{})
-	collection := session.DB("test").C("People")
-
-	result := Person{}
-
-	err = collection.Find(bson.M{"name": r.FormValue("name")}).One(&result)
+	result := Task{}
+	err := collection.Find(bson.M{"name": r.FormValue("name")}).One(&result)
 
 	fmt.Println(err)
 
 	data := Data{result, "title"}
+	displayTemplate.Execute(w, data)
+	/**
 	if result.Email != "" {
 		errn := displayTemplate.Execute(w, data)
 		if errn != nil {
@@ -100,6 +104,27 @@ func viewTask(w http.ResponseWriter, r *http.Request) {
 	} else {
 		displayTemplate.Execute(w, data)
 	}
+	**/
+}
+
+func editTask(w http.ResponseWriter, r *http.Request) {
+	displayTemplate, _ := template.ParseFiles("editTask.html", "header.html", "footer.html")
+	displayTemplate.Execute(w, nil)
+}
+
+func createTask(w http.ResponseWriter, r *http.Request) {
+	displayTemplate, _ := template.ParseFiles("editTask.html", "header.html", "footer.html")
+
+	collection, session := getDb()
+	defer session.Close()
+	task := Task{r.FormValue("name"), r.FormValue("frequency")}
+	err := collection.Insert(&task)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(err)
+	displayTemplate.Execute(w, nil)
 }
 
 func getPort() string {
