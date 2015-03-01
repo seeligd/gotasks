@@ -1,0 +1,12 @@
+{{template "header" .Title }}
+
+<h2>results</h2>
+
+<ul>
+    {{ range .E }}
+    <li>Name: {{.Name}}</li>
+    <li>Frequency: {{.Frequency}}</li>
+    {{end}}
+</ul>
+
+{{template "footer"}}
