@@ -1,12 +1,11 @@
 {{template "header" .Title }}
 
-<h2>results</h2>
+<h2>Your tasks</h2>
 
-<ul>
+<ol>
     {{ range .E }}
-    <li>Name: {{.Name}}</li>
-    <li>Frequency: {{.Frequency}}</li>
+    <li><strong>{{.Name}}</strong>: {{.Frequency}}</li>
     {{end}}
-</ul>
+</ol>
 
 {{template "footer"}}
